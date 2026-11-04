@@ -43,7 +43,11 @@
   header { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; justify-content: space-between; }
   h1 { font: 400 1.6rem/1.1 var(--display); color: var(--brass); margin: 0; letter-spacing: .02em; }
   h2 { font: 800 .8rem/1.2 var(--body); text-transform: uppercase; letter-spacing: .09em; color: var(--muted); margin: 0; }
-  .tools { display: flex; gap: 8px; }
+  .tools { display: flex; flex-wrap: wrap; gap: 8px; }
+  .langs { display: flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+  .lang { background: none; border: 0; padding: 6px 10px; font-weight: 800; font-size: .85rem; color: var(--muted); }
+  .lang:hover { color: var(--brass); }
+  .lang[aria-pressed="true"] { background: var(--brass); color: #2a1c11; }
   button { font: inherit; color: inherit; cursor: pointer; }
   button:focus-visible, summary:focus-visible { outline: 3px solid var(--text); outline-offset: 2px; }
   .ghost { background: none; border: 1px solid var(--line); border-radius: 6px; padding: 6px 12px; font-weight: 600; }
@@ -122,28 +126,32 @@
 <body>
 <div class="wrap">
   <header>
-    <h1>Rune Row Guide</h1>
+    <h1 data-i18n="title">Rune Row Guide</h1>
     <div class="tools">
-      <button class="ghost" id="undo" type="button">Undo</button>
-      <button class="ghost" id="reset" type="button">New game</button>
+      <div class="langs" role="group" aria-label="Language / Nyelv">
+        <button class="lang" type="button" data-lang="en" lang="en">EN</button>
+        <button class="lang" type="button" data-lang="hu" lang="hu">HU</button>
+      </div>
+      <button class="ghost" id="undo" type="button" data-i18n="undo">Undo</button>
+      <button class="ghost" id="reset" type="button" data-i18n="reset">New game</button>
     </div>
   </header>
 
   <div class="stats" aria-live="polite">
-    <div><h2>Score</h2><b id="s-score">0</b></div>
-    <div><h2>Left in deck</h2><b id="s-deck">19</b></div>
-    <div><h2>Used up</h2><b id="s-used">0</b></div>
+    <div><h2 data-i18n="statScore">Score</h2><b id="s-score">0</b></div>
+    <div><h2 data-i18n="statDeck">Left in deck</h2><b id="s-deck">19</b></div>
+    <div><h2 data-i18n="statUsed">Used up</h2><b id="s-used">0</b></div>
   </div>
 
   <div class="board">
     <div class="col">
       <section class="section">
-        <h2>Your hand</h2>
+        <h2 data-i18n="handTitle">Your hand</h2>
         <div class="hand" id="hand"></div>
-        <p class="hint">Tap a card here to take it back if you mistyped.</p>
+        <p class="hint" data-i18n="handHint">Tap a card here to take it back if you mistyped.</p>
       </section>
       <section class="section">
-        <h2>Pick cards</h2>
+        <h2 data-i18n="pickTitle">Pick cards</h2>
         <div class="picker" id="picker"></div>
       </section>
     </div>
@@ -152,13 +160,13 @@
   </div>
 
   <details class="rules">
-    <summary>How points work and what this guide assumes</summary>
+    <summary data-i18n="rulesTitle">How points work and what this guide assumes</summary>
     <table>
-      <tr><td>Colour run</td><td>one colour, numbers in a row</td><td>50 + 10 × lowest card</td></tr>
-      <tr><td>Triple</td><td>same number in all three colours</td><td>20 + 10 × number</td></tr>
-      <tr><td>Mixed run</td><td>numbers in a row, mixed colours</td><td>10 × lowest card</td></tr>
+      <tr><td data-i18n="colour">Colour run</td><td data-i18n="colourDesc">one colour, numbers in a row</td><td data-i18n="colourPts">50 + 10 × lowest card</td></tr>
+      <tr><td data-i18n="triple">Triple</td><td data-i18n="tripleDesc">same number in all three colours</td><td data-i18n="triplePts">20 + 10 × number</td></tr>
+      <tr><td data-i18n="mixed">Mixed run</td><td data-i18n="mixedDesc">numbers in a row, mixed colours</td><td data-i18n="mixedPts">10 × lowest card</td></tr>
     </table>
-    <p>The deck is 24 cards: three colours numbered 1 to 8. You can discard at any time. Expected scores are averages from simulated games, except near the end of the deck, where they are calculated exactly.</p>
+    <p data-i18n="rulesNote">The deck is 24 cards: three colours numbered 1 to 8. You can discard at any time. Expected scores are averages from simulated games, except near the end of the deck, where they are calculated exactly.</p>
   </details>
 </div>
 
@@ -168,17 +176,98 @@
   'use strict';
   const R = window.RuneRow;
 
-  // Change the names here if the game's colours differ.
-  const COLOURS = [
-    { name: 'Red', mark: '◆' },
-    { name: 'Yellow', mark: '●' },
-    { name: 'Blue', mark: '▲' },
-  ];
+  // All page text. Add a language by adding a block here and a button in the header.
+  const STRINGS = {
+    en: {
+      title: 'Rune Row Guide', undo: 'Undo', reset: 'New game',
+      statScore: 'Score', statDeck: 'Left in deck', statUsed: 'Used up',
+      handTitle: 'Your hand', handHint: 'Tap a card here to take it back if you mistyped.', pickTitle: 'Pick cards',
+      rulesTitle: 'How points work and what this guide assumes',
+      colours: ['Red', 'Yellow', 'Blue'],
+      colour: 'Colour run', colourDesc: 'one colour, numbers in a row', colourPts: '50 + 10 × lowest card',
+      triple: 'Triple', tripleDesc: 'same number in all three colours', triplePts: '20 + 10 × number',
+      mixed: 'Mixed run', mixedDesc: 'numbers in a row, mixed colours', mixedPts: '10 × lowest card',
+      rulesNote: 'The deck is 24 cards: three colours numbered 1 to 8. You can discard at any time. Expected scores are averages from simulated games, except near the end of the deck, where they are calculated exactly.',
+      askFirst: 'Tap the cards in your hand',
+      askNew: (n) => `Tap the new card${n > 1 ? 's' : ''} you drew`,
+      left: (n) => `${n} more to go. `,
+      askHelp: 'Use the grid of cards. The guide then tells you the best move.',
+      example: 'Try it with an example hand',
+      working: 'Working it out…', workingSub: 'Simulating the rest of the deck for each move.',
+      final: (n) => `Final score: ${n}`,
+      overDeck: 'The cards that are left can’t make another set, so the game is over.',
+      overEmpty: 'The deck is empty and no set is left to play.',
+      again: 'Start a new game',
+      discardTag: 'Discard',
+      playHead: (chips, pts) => `Play ${chips} for ${pts}`,
+      discardHead: (chip) => `Discard ${chip}`,
+      close: (move) => `Close call. <span class="move">${move}</span> scores about the same.`,
+      useThis: 'Use this',
+      nextIf: 'Then, depending on your next card',
+      checking: (n) => `Working through the ${n} cards you could draw…`,
+      colDraw: 'Draw', colMove: 'Best move then', colFinal: 'Final',
+      next: 'Next',
+      youDraw: (d) => `You draw ${d} new card${d > 1 ? 's' : ''}. Tap ${d > 1 ? 'them' : 'it'} in the grid and you get the next move.`,
+      expected: 'Expected final score:', did: 'I did this',
+      others: 'Other moves, by expected final score',
+      noMove: 'No move left',
+      checked: (a, b) => `Checked ${a} of ${b} cards you could draw…`,
+      planSum: (plays, total, pct) => `Each card is a 1 in ${total} chance. ${plays} of ${total} (${pct}%) let you play a set straight away. Final is the expected final score.`,
+      takeBack: (name) => `Take back ${name}`, isUsed: ', already used', isHeld: ', in hand',
+      full: 'Your hand is full. Tap a card in your hand to take it back first.',
+    },
+    hu: {
+      title: 'Rune Row útmutató', undo: 'Visszavonás', reset: 'Új játék',
+      statScore: 'Pontszám', statDeck: 'A pakliban', statUsed: 'Felhasznált',
+      handTitle: 'A kezed', handHint: 'Ha mellényúltál, koppints itt a lapra, és visszakerül.', pickTitle: 'Lapok kiválasztása',
+      rulesTitle: 'Hogyan járnak a pontok, és mit feltételez az útmutató',
+      colours: ['Piros', 'Sárga', 'Kék'],
+      colour: 'Egyszínű sor', colourDesc: 'egy szín, egymást követő számok', colourPts: '50 + 10 × legkisebb lap',
+      triple: 'Hármas', tripleDesc: 'ugyanaz a szám mindhárom színben', triplePts: '20 + 10 × a szám',
+      mixed: 'Vegyes sor', mixedDesc: 'egymást követő számok, vegyes színek', mixedPts: '10 × legkisebb lap',
+      rulesNote: 'A pakli 24 lapból áll: három szín, 1-től 8-ig számozva. Bármikor dobhatsz el lapot. A várható pontszámok szimulált játékok átlagai, kivéve a pakli vége felé, ahol pontosan ki vannak számolva.',
+      askFirst: 'Koppints a kezedben lévő lapokra',
+      askNew: (n) => (n > 1 ? 'Koppints az új lapokra, amelyeket húztál' : 'Koppints az új lapra, amelyet húztál'),
+      left: (n) => `Még ${n} van hátra. `,
+      askHelp: 'Használd a lapok rácsát. Az útmutató ezután megmondja a legjobb lépést.',
+      example: 'Próbáld ki egy példakézzel',
+      working: 'Számolok…', workingSub: 'Minden lépésre szimulálom a pakli hátralévő részét.',
+      final: (n) => `Végső pontszám: ${n}`,
+      overDeck: 'A megmaradt lapokból már nem jön ki újabb kombináció, így vége a játéknak.',
+      overEmpty: 'A pakli elfogyott, és nincs több lerakható kombináció.',
+      again: 'Új játék indítása',
+      discardTag: 'Eldobás',
+      playHead: (chips, pts) => `Rakd le: ${chips} – ${pts} pont`,
+      discardHead: (chip) => `Dobd el: ${chip}`,
+      close: (move) => `Szoros döntés. Ez a lépés nagyjából ugyanannyit ér: <span class="move">${move}</span>`,
+      useThis: 'Ezt választom',
+      nextIf: 'Utána a következő lapodtól függően',
+      checking: (n) => `Végignézem a ${n} lapot, amelyet húzhatsz…`,
+      colDraw: 'Húzás', colMove: 'Legjobb lépés utána', colFinal: 'Végső',
+      next: 'Következő',
+      youDraw: (d) => (d > 1
+        ? `${d} új lapot húzol. Koppints rájuk a rácsban, és megkapod a következő lépést.`
+        : '1 új lapot húzol. Koppints rá a rácsban, és megkapod a következő lépést.'),
+      expected: 'Várható végső pontszám:', did: 'Megcsináltam',
+      others: 'Többi lépés, várható végső pontszám szerint',
+      noMove: 'Nincs több lépés',
+      checked: (a, b) => `${a} / ${b} lehetséges lap megnézve…`,
+      planSum: (plays, total, pct) => `Mindegyik lap esélye 1/${total}. ${plays}/${total} lappal (${pct}%) azonnal lerakhatsz egy kombinációt. A Végső oszlop a várható végső pontszám.`,
+      takeBack: (name) => `Vedd vissza: ${name}`, isUsed: ', már felhasználva', isHeld: ', a kezedben',
+      full: 'Tele a kezed. Előbb koppints egy lapra a kezedben, hogy visszavedd.',
+    },
+  };
+  const MARKS = ['◆', '●', '▲'];
   const HAND_SIZE = 5;
-  const TYPE_LABEL = { colour: 'Colour run', triple: 'Triple', mixed: 'Mixed run' };
   const STORE_KEY = 'rune-row-guide-v1';
+  const LANG_KEY = 'rune-row-guide-lang';
   const $ = (id) => document.getElementById(id);
 
+  let lang = loadLang();
+  const t = (key, ...args) => {
+    const v = STRINGS[lang][key];
+    return typeof v === 'function' ? v(...args) : v;
+  };
   let state = load() || blank();
   let runId = 0;
   let shownMoves = [];
@@ -192,12 +281,26 @@
   }
   function save() { try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch (e) { /* storage is optional */ } }
 
+  function loadLang() {
+    let saved = null;
+    try { saved = localStorage.getItem(LANG_KEY); } catch (e) { /* storage is optional */ }
+    if (STRINGS[saved]) return saved;
+    return (navigator.language || '').toLowerCase().startsWith('hu') ? 'hu' : 'en';
+  }
+
+  function applyLang() {
+    document.documentElement.lang = lang;
+    document.title = t('title');
+    document.querySelectorAll('[data-i18n]').forEach((el) => { el.textContent = t(el.dataset.i18n); });
+    document.querySelectorAll('[data-lang]').forEach((b) => b.setAttribute('aria-pressed', b.dataset.lang === lang ? 'true' : 'false'));
+  }
+
   const mask = (list) => list.reduce((m, c) => m | (1 << c), 0);
   const unseenMask = () => R.ALL & ~mask(state.hand) & ~mask(state.used);
   const needed = () => Math.min(HAND_SIZE - state.hand.length, R.popcount(unseenMask()));
-  const cardName = (id) => `${COLOURS[R.colourOf(id)].name} ${R.numberOf(id)}`;
+  const cardName = (id) => `${t('colours')[R.colourOf(id)]} ${R.numberOf(id)}`;
   const chip = (id) =>
-    `<span class="card chip c${R.colourOf(id)}" role="img" aria-label="${cardName(id)}"><i aria-hidden="true">${COLOURS[R.colourOf(id)].mark}</i>${R.numberOf(id)}</span>`;
+    `<span class="card chip c${R.colourOf(id)}" role="img" aria-label="${cardName(id)}"><i aria-hidden="true">${MARKS[R.colourOf(id)]}</i>${R.numberOf(id)}</span>`;
   const sortCards = (list) => [...list].sort((a, b) => R.numberOf(a) - R.numberOf(b) || a - b);
   const comboOf = (m) => R.COMBOS[m.combo];
   const moveCards = (m) => (m.kind === 'play' ? sortCards(comboOf(m).cards) : [m.card]);
@@ -209,7 +312,7 @@
     b.type = 'button';
     b.className = `card c${c}`;
     b.dataset.card = id;
-    b.innerHTML = `<i aria-hidden="true">${COLOURS[c].mark}</i>${n}`;
+    b.innerHTML = `<i aria-hidden="true">${MARKS[c]}</i>${n}`;
     $('picker').appendChild(b);
   }
 
@@ -236,7 +339,7 @@
     const hand = sortCards(state.hand);
     const slots = hand.map((id) => {
       const cls = tagPlay.includes(id) ? ' to-play' : tagDrop.includes(id) ? ' to-drop' : '';
-      return `<button type="button" class="card c${R.colourOf(id)}${cls}" data-card="${id}" aria-label="Take back ${cardName(id)}"><i aria-hidden="true">${COLOURS[R.colourOf(id)].mark}</i>${R.numberOf(id)}</button>`;
+      return `<button type="button" class="card c${R.colourOf(id)}${cls}" data-card="${id}" aria-label="${t('takeBack', cardName(id))}"><i aria-hidden="true">${MARKS[R.colourOf(id)]}</i>${R.numberOf(id)}</button>`;
     });
     while (slots.length < HAND_SIZE) slots.push('<div class="slot"></div>');
     $('hand').innerHTML = slots.join('');
@@ -248,7 +351,7 @@
       b.classList.toggle('used', !!(used & bit));
       b.setAttribute('aria-pressed', inHand & bit ? 'true' : 'false');
       b.disabled = !!(used & bit);
-      b.setAttribute('aria-label', cardName(id) + (used & bit ? ', already used' : inHand & bit ? ', in hand' : ''));
+      b.setAttribute('aria-label', cardName(id) + (used & bit ? t('isUsed') : inHand & bit ? t('isHeld') : ''));
     }
     $('s-score').textContent = state.score;
     $('s-deck').textContent = R.popcount(unseenMask());
@@ -268,12 +371,12 @@
 
   function renderAsk(n) {
     const first = !state.used.length;
-    const title = first ? 'Tap the cards in your hand' : `Tap the new card${n > 1 ? 's' : ''} you drew`;
-    const left = first && state.hand.length ? `${n} more to go. ` : n > 1 ? `${n} more to go. ` : '';
+    const title = first ? t('askFirst') : t('askNew', n);
+    const left = (first && state.hand.length) || n > 1 ? t('left', n) : '';
     $('advice').innerHTML =
       `<p class="verdict">${title}</p>
-       <p class="sub">${left}Use the grid of cards. The guide then tells you the best move.</p>
-       ${first && !state.hand.length ? '<div><button type="button" class="link" id="example">Try it with an example hand</button></div>' : ''}`;
+       <p class="sub">${left}${t('askHelp')}</p>
+       ${first && !state.hand.length ? '<div><button type="button" class="link" id="example">' + t('example') + '</button></div>' : ''}`;
   }
 
   const pause = () => new Promise((res) => setTimeout(res, 0));
@@ -291,7 +394,7 @@
   }
 
   async function analyse(run) {
-    $('advice').innerHTML = '<p class="verdict">Working it out…</p><p class="sub">Simulating the rest of the deck for each move.</p>';
+    $('advice').innerHTML = `<p class="verdict">${t('working')}</p><p class="sub">${t('workingSub')}</p>`;
     await pause();
     if (run !== runId) return;
     const hand = mask(state.hand), deck = unseenMask();
@@ -305,14 +408,14 @@
   function renderOver(deck) {
     renderBoard();
     $('advice').innerHTML =
-      `<p class="verdict">Final score: ${state.score}</p>
-       <p class="sub">${deck ? 'The cards that are left can’t make another set, so the game is over.' : 'The deck is empty and no set is left to play.'}</p>
-       <button type="button" class="primary" id="again">Start a new game</button>`;
+      `<p class="verdict">${t('final', state.score)}</p>
+       <p class="sub">${t(deck ? 'overDeck' : 'overEmpty')}</p>
+       <button type="button" class="primary" id="again">${t('again')}</button>`;
   }
 
   function moveLine(m) {
-    if (m.kind === 'discard') return `<span class="tag-drop">Discard</span> ${chip(m.card)}`;
-    return `<span class="tag-play">${TYPE_LABEL[comboOf(m).type]}</span> ${moveCards(m).map(chip).join('')} <span class="num">+${m.pts}</span>`;
+    if (m.kind === 'discard') return `<span class="tag-drop">${t('discardTag')}</span> ${chip(m.card)}`;
+    return `<span class="tag-play">${t(comboOf(m).type)}</span> ${moveCards(m).map(chip).join('')} <span class="num">+${m.pts}</span>`;
   }
 
   function renderAdvice(moves) {
@@ -322,33 +425,33 @@
     renderBoard(best.kind === 'play' ? moveCards(best) : [], best.kind === 'discard' ? [best.card] : []);
 
     const headline = best.kind === 'play'
-      ? `Play ${moveCards(best).map(chip).join('')} for ${best.pts}`
-      : `Discard ${chip(best.card)}`;
-    const why = best.kind === 'play' ? `${TYPE_LABEL[comboOf(best).type]}. ` : '';
+      ? t('playHead', moveCards(best).map(chip).join(''), best.pts)
+      : t('discardHead', chip(best.card));
+    const why = best.kind === 'play' ? `${t(comboOf(best).type)}. ` : '';
 
     const rival = moves[1];
     const close = rival && (best.value - rival.value) <= Math.max(1, 2 * Math.hypot(best.se, rival.se));
     const closeNote = close
-      ? `<p class="note">Close call. <span class="move">${moveLine(rival)}</span> scores about the same.</p>` : '';
+      ? `<p class="note">${t('close', moveLine(rival))}</p>` : '';
 
     const others = moves.slice(1).map((m, i) =>
-      `<div class="row"><span class="num">${round(state.score + m.value)}</span><span class="move">${moveLine(m)}</span><button type="button" class="link" data-move="${i + 1}">Use this</button></div>`).join('');
+      `<div class="row"><span class="num">${round(state.score + m.value)}</span><span class="move">${moveLine(m)}</span><button type="button" class="link" data-move="${i + 1}">${t('useThis')}</button></div>`).join('');
 
     let nextBlock = '';
     if (best.kind === 'discard') {
-      nextBlock = `<div class="next"><h2>Then, depending on your next card</h2><p class="sub" id="next-sum">Working through the ${deckSize} cards you could draw…</p><div class="row-head"><span>Draw</span><span>Best move then</span><span>Final</span></div><div class="rows" id="next-rows"></div></div>`;
+      nextBlock = `<div class="next"><h2>${t('nextIf')}</h2><p class="sub" id="next-sum">${t('checking', deckSize)}</p><div class="row-head"><span>${t('colDraw')}</span><span>${t('colMove')}</span><span>${t('colFinal')}</span></div><div class="rows" id="next-rows"></div></div>`;
     } else if (deckSize > 0) {
       const d = Math.min(3, deckSize);
-      nextBlock = `<div class="next"><h2>Next</h2><p class="sub">You draw ${d} new card${d > 1 ? 's' : ''}. Tap ${d > 1 ? 'them' : 'it'} in the grid and you get the next move.</p></div>`;
+      nextBlock = `<div class="next"><h2>${t('next')}</h2><p class="sub">${t('youDraw', d)}</p></div>`;
     }
 
     $('advice').innerHTML =
       `<p class="verdict">${headline}</p>
-       <p class="sub">${why}Expected final score: <b>${round(state.score + best.value)}</b></p>
+       <p class="sub">${why}${t('expected')} <b>${round(state.score + best.value)}</b></p>
        ${closeNote}
-       <button type="button" class="primary" data-move="0">I did this</button>
+       <button type="button" class="primary" data-move="0">${t('did')}</button>
        ${nextBlock}
-       ${others ? `<details><summary>Other moves, by expected final score</summary><div class="rows">${others}</div></details>` : ''}`;
+       ${others ? `<details><summary>${t('others')}</summary><div class="rows">${others}</div></details>` : ''}`;
   }
 
   // For the recommended discard, works out the best follow-up for every card that could come next.
@@ -371,30 +474,35 @@
     const sorted = [...plans].sort((a, b) => b.move.value - a.move.value);
     rows.innerHTML = sorted.map((p) => {
       const m = p.move;
-      return `<div class="row${m && m.kind === 'play' ? ' is-play' : ''}"><span class="card-col">${chip(p.card)}</span><span class="move">${m ? moveLine(m) : 'No move left'}</span><span class="num">${m ? round(state.score + m.value) : ''}</span></div>`;
+      return `<div class="row${m && m.kind === 'play' ? ' is-play' : ''}"><span class="card-col">${chip(p.card)}</span><span class="move">${m ? moveLine(m) : t('noMove')}</span><span class="num">${m ? round(state.score + m.value) : ''}</span></div>`;
     }).join('');
     const plays = plans.filter((p) => p.move && p.move.kind === 'play').length;
     const pct = Math.round((100 * plays) / plans.length);
     sum.textContent = plans.length < total
-      ? `Checked ${plans.length} of ${total} cards you could draw…`
-      : `Each card is a 1 in ${total} chance. ${plays} of ${total} (${pct}%) let you play a set straight away. Final is the expected final score.`;
+      ? t('checked', plans.length, total)
+      : t('planSum', plays, total, pct);
   }
 
   document.addEventListener('click', (e) => {
-    const t = e.target.closest('button');
-    if (!t) return;
-    if (t.id === 'undo') {
+    const btn = e.target.closest('button');
+    if (!btn) return;
+    if (btn.dataset.lang) {
+      lang = btn.dataset.lang;
+      try { localStorage.setItem(LANG_KEY, lang); } catch (err) { /* storage is optional */ }
+      applyLang();
+      update();
+    } else if (btn.id === 'undo') {
       const prev = state.history.pop();
       if (prev) { Object.assign(state, prev); update(); }
-    } else if (t.id === 'reset' || t.id === 'again') {
+    } else if (btn.id === 'reset' || btn.id === 'again') {
       state = blank(); update();
-    } else if (t.id === 'example') {
+    } else if (btn.id === 'example') {
       state.hand = [R.cardId(0, 2), R.cardId(0, 3), R.cardId(2, 3), R.cardId(1, 6), R.cardId(2, 8)];
       update();
-    } else if (t.dataset.move !== undefined) {
-      apply(shownMoves[+t.dataset.move]);
-    } else if (t.dataset.card !== undefined) {
-      const id = +t.dataset.card;
+    } else if (btn.dataset.move !== undefined) {
+      apply(shownMoves[+btn.dataset.move]);
+    } else if (btn.dataset.card !== undefined) {
+      const id = +btn.dataset.card;
       if (state.used.includes(id)) return;
       if (state.hand.includes(id)) state.hand = state.hand.filter((c) => c !== id);
       else if (needed() > 0) state.hand.push(id);
@@ -407,11 +515,12 @@
     if ($('full-note')) return;
     const p = document.createElement('p');
     p.className = 'note'; p.id = 'full-note';
-    p.textContent = 'Your hand is full. Tap a card in your hand to take it back first.';
+    p.textContent = t('full');
     $('advice').prepend(p);
     setTimeout(() => p.remove(), 3000);
   }
 
+  applyLang();
   update();
 })();
 </script>
